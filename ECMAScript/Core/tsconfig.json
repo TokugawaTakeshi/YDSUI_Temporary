@@ -1,0 +1,15 @@
+{
+
+  "compilerOptions": {
+
+    "target": "ESNext",
+
+    "noUnusedParameters": true,
+    "noUnusedLocals": true,
+    "noImplicitReturns": true,
+
+    "types": [ "node" ]
+
+  }
+
+}

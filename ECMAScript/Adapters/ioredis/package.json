@@ -1,0 +1,37 @@
+{
+  "name": "@yamato-daiwa/serial-unique-identifiers-ioredis",
+  "version": "0.0.0",
+  "description": "",
+  "keywords": [],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "./Distributable/index.js",
+  "types": "./Distributable/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "Distributable"
+  ],
+  "peerDependencies": {
+    "@yamato-daiwa/serial-unique-identifiers": "0.0.0",
+    "ioredis": "~5.11.0"
+  },
+  "dependencies": {
+    "ioredis": "5.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.17",
+    "@yamato-daiwa/style_guides": "0.14.3",
+    "@yamato-daiwa/serial-unique-identifiers": "../../Core",
+    "rimraf": "6.1.3",
+    "typescript": "6.0.3"
+  },
+  "scripts": {
+    "Check Types": "tsc -p tsconfig-build.json --noEmit",
+    "Lint": "eslint",
+    "Rebuild Distributable Without Preliminary Cleaning": "tsc -p tsconfig.build.json",
+    "Rebuild Distributable": "rimraf Distributable && tsc -p tsconfig-cjs.json && tsc -p tsconfig-esm.json",
+    "Rebuild Distributable and Realize Alpha": "npm run \"Rebuild Distributable\" && npm publish --tag alpha",
+    "Rebuild Distributable and Realize RC": "npm run \"Rebuild Distributable\" && npm publish --tag rc"
+  }
+}

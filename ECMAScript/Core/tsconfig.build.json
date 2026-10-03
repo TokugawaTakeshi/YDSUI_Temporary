@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "Source",
+    "removeComments": true,
+    "declaration": true
+  },
+  "include": [ "Source/**/*" ]
+}
