@@ -843,7 +843,7 @@ The returning of new object/array instead of storing it to the field is the stan
   objects/arrays instead of reusage of the same reference. 
 
 
-#### `InMemorySerialNanoID_Generator`
+#### `InMemorySerialNanoIDsGenerator`
 
 The fully synchronous but _pared-down_ alternative to `PersistentSerialNanoIDsGenerator` indended to be used _only_ 
   in local development mode where the losing of the data (usually the sampple/dummy data) is acceptable.

@@ -1,4 +1,4 @@
-import type PersistentSerialNanoIDsGenerator from "./PersistentSerialNanoIDsGenerator";
+import type PersistentSerialNanoIDsGenerator from "../AbstractGenerators/PersistentSerialNanoIDsGenerator";
 import { type ArbitraryObject, Logger } from "@yamato-daiwa/es-extensions";
 
 

@@ -1,5 +1,7 @@
 import { FIXED_CHARACTERS_COUNT_IN_NANO_ID } from "fundamental-constants";
-import CharactersSequence from "./Internal/CharactersSequence";
+import CharactersSequence from "../Internal/CharactersSequence";
+import removeIrrelevantForbiddenIDsAndSortInAscendingOrder from
+    "../Utils/removeIrrelevantForbiddenIDsAndSortInAscendingOrder";
 import {
   createArrayOfNaturalNumbers,
   removeOneElementFromSet,
@@ -9,15 +11,10 @@ import {
   InvalidParameterValueError,
   addElementsToSet
 } from "@yamato-daiwa/es-extensions";
-import {
-  compareValuesOfArbitraryNumeralSystem,
-  ComparingValuesOfArbitraryNumeralSystem
-} from "./Incubators/compareValuesOfArbitraryNumeralSystem";
-import removeElementsFromSet from "./Incubators/removeElementsFromSet";
-import type { SerialNanoID_Generator } from "./SerialNanoID_Generator";
+import removeElementsFromSet from "../Incubators/removeElementsFromSet";
 
 
-abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator {
+export default abstract class InMemorySerialNanoIDsGenerator {
 
   /* ━━━ Fields ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
   protected series: number;
@@ -30,7 +27,7 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
   protected reversedPositions: Array<string>;
 
   protected readonly issuedButUsageNotConfirmedIDs: Set<string> = new Set<string>();
-  protected readonly issuedButHasBecomeUnnecessaryIDs: Set<string> = new Set<string>();
+  protected readonly issuedButWillNotBeUsedIDs: Set<string> = new Set<string>();
   protected readonly forbiddenIDs: Set<string> = new Set();
 
 
@@ -41,10 +38,17 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
       initialSeries = 0,
       mustInclude0thSeriesToIDs = false,
       issuedButUsageNotConfirmedIDs,
-      issuedButHasBecomeUnnecessaryIDs,
+      issuedButWillNotBeUsedIDs,
       forbiddenIDs
     }:
-        InMemorySerialNanoID_Generator.Options =
+        Readonly<{
+          initialPositions?: ReadonlyArray<string>;
+          initialSeries?: number;
+          mustInclude0thSeriesToIDs?: boolean;
+          issuedButUsageNotConfirmedIDs?: ReadonlySet<string>
+          issuedButWillNotBeUsedIDs?: ReadonlySet<string>;
+          forbiddenIDs?: ReadonlySet<string>;
+        }> =
             {}
   ) {
 
@@ -70,16 +74,28 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
 
     } else {
 
-      this.reversedPositions = InMemorySerialNanoID_Generator.generateReversedPositionsForFirstID();
+      this.reversedPositions = InMemorySerialNanoIDsGenerator.generateReversedPositionsForFirstID();
 
     }
 
     this.series = initialSeries;
     this.mustInclude0thSeriesToIDs = mustInclude0thSeriesToIDs;
 
-    this.issuedButUsageNotConfirmedIDs = new Set(...issuedButUsageNotConfirmedIDs ?? []);
-    this.issuedButHasBecomeUnnecessaryIDs = new Set(issuedButHasBecomeUnnecessaryIDs ?? []);
-    this.forbiddenIDs = new Set(forbiddenIDs ?? []);
+    this.issuedButUsageNotConfirmedIDs = new Set(issuedButUsageNotConfirmedIDs ?? []);
+    this.issuedButWillNotBeUsedIDs = new Set(issuedButWillNotBeUsedIDs ?? []);
+
+    const {
+      relevantExternallyUsedIDs
+    }: Readonly<{
+      relevantExternallyUsedIDs: Array<string>;
+      notRelevantAnymoreExternallyIssuedIDs: Array<string>;
+    }> = removeIrrelevantForbiddenIDsAndSortInAscendingOrder({
+      newForbiddenIDs: Array.from(forbiddenIDs ?? []),
+      previouslyForbiddenIDs: new Set(),
+      reversedPositions: this.reversedPositions
+    });
+
+    this.forbiddenIDs = new Set(relevantExternallyUsedIDs);
 
   }
 
@@ -92,10 +108,10 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
    * To avoid this, increment AFTER issuing of the ID. */
   public generateOne(): string {
 
-    // TODO May becore forbidden!
+    // TODO May become forbidden!
     const firstIssuedButWillNotBeUsedID: string | undefined =
         removeOneElementFromSet({
-          targetSet: this.issuedButHasBecomeUnnecessaryIDs,
+          targetSet: this.issuedButWillNotBeUsedIDs,
           mutably: true,
           mustThrowErrorIfSetIsEmpty: false
         }).
@@ -140,64 +156,31 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
 
   public reportExternallyIssuedUsageOfIDs(targetIDs: ReadonlyArray<string>): void {
 
-    const notActualAnymoreExternallyIssuedIDs: Array<string> = [];
-
-    const actualExternallyUsedIDs: Array<string> =
-
-        Array.from(new Set(targetIDs)).
-
-            filter(
-              (ID: string): boolean => {
-
-                const mustKeepID: boolean =
-                    compareValuesOfArbitraryNumeralSystem(
-                      Array.from(ID),
-                      this.reversedPositions,
-                      CharactersSequence
-                    ).
-                        isFirstValueGreaterOrEqualsToSecondOne;
-
-                if (!mustKeepID) {
-                  notActualAnymoreExternallyIssuedIDs.push(ID);
-                }
-
-                return mustKeepID;
-
-              }
-
-            ).
-
-            toSorted(
-              (oneID: string, otherID: string): number => {
-
-                const {
-                  isFirstValueStrictlySmaller
-                }: ComparingValuesOfArbitraryNumeralSystem.Result =
-
-                    compareValuesOfArbitraryNumeralSystem(
-                      Array.from(oneID),
-                      Array.from(otherID),
-                      CharactersSequence
-                    );
-
-                return isFirstValueStrictlySmaller ? -1 : 1;
-
-              }
-            );
+    const {
+      relevantExternallyUsedIDs,
+      notRelevantAnymoreExternallyIssuedIDs
+    }: Readonly<{
+      relevantExternallyUsedIDs: Array<string>;
+      notRelevantAnymoreExternallyIssuedIDs: Array<string>;
+    }> = removeIrrelevantForbiddenIDsAndSortInAscendingOrder({
+      newForbiddenIDs: targetIDs,
+      previouslyForbiddenIDs: this.forbiddenIDs,
+      reversedPositions: this.reversedPositions
+    });
 
     let updatedReservedPositions: Array<string> = this.reversedPositions;
     let updatedSeries: number = this.series;
 
     let nextID: string =
-        InMemorySerialNanoID_Generator.generateID_BasedOnInMemoryDataOnly(
+        InMemorySerialNanoIDsGenerator.generateID_BasedOnInMemoryDataOnly(
             updatedReservedPositions,
             updatedSeries,
             this.mustInclude0thSeriesToIDs
           );
 
-    while (actualExternallyUsedIDs.includes(nextID)) {
+    while (relevantExternallyUsedIDs.includes(nextID)) {
 
-      actualExternallyUsedIDs.shift();
+      relevantExternallyUsedIDs.shift();
 
       this.increment();
 
@@ -205,7 +188,7 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
       updatedSeries = this.series;
 
       nextID =
-          InMemorySerialNanoID_Generator.generateID_BasedOnInMemoryDataOnly(
+          InMemorySerialNanoIDsGenerator.generateID_BasedOnInMemoryDataOnly(
             updatedReservedPositions,
             updatedSeries,
             this.mustInclude0thSeriesToIDs
@@ -223,16 +206,20 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
 
     addElementsToSet({
       targetSet: this.forbiddenIDs,
-      newElements: actualExternallyUsedIDs,
+      newElements: relevantExternallyUsedIDs,
       mutably: true
     });
 
     removeElementsFromSet({
       targetSet: this.forbiddenIDs,
-      elementsToDelete: notActualAnymoreExternallyIssuedIDs,
+      elementsToDelete: notRelevantAnymoreExternallyIssuedIDs,
       mutably: true
     });
 
+  }
+
+  public async getForbiddenIDs(): Promise<Set<string>> {
+    return Promise.resolve(new Set(this.forbiddenIDs));
   }
 
 
@@ -263,7 +250,7 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
     * Looks like the ESLint bug because `isIncrementOfNextPositionRequired` is changed inside the loop. */
     if (isIncrementOfNextPositionRequired) {
       this.series = isNull(this.series) ? 0 : this.series + 1;
-      this.reversedPositions = InMemorySerialNanoID_Generator.generateReversedPositionsForFirstID();
+      this.reversedPositions = InMemorySerialNanoIDsGenerator.generateReversedPositionsForFirstID();
     }
 
   }
@@ -291,20 +278,3 @@ abstract class InMemorySerialNanoID_Generator implements SerialNanoID_Generator 
   }
 
 }
-
-
-namespace InMemorySerialNanoID_Generator {
-
-  export type Options =
-      SerialNanoID_Generator.Options &
-      Readonly<{
-        issuedButUsageNotConfirmedIDs?: ReadonlySet<string>;
-        issuedButHasBecomeUnnecessaryIDs?: ReadonlySet<string>;
-        forbiddenIDs?: ReadonlySet<string>;
-      }>;
-
-}
-
-
-export default InMemorySerialNanoID_Generator;
-

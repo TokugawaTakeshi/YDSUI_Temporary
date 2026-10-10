@@ -1,12 +1,16 @@
-import PersistentSerialNanoIDsGenerator from "../../Source/PersistentSerialNanoIDsGenerator";
+import type { TestableSerialNanoIDsGenerator} from "../../Source";
+import { PersistentSerialNanoIDsGenerator } from "../../Source";
 import { addElementsToSet } from "@yamato-daiwa/es-extensions";
 import removeElementsFromSet from "../../Source/Incubators/removeElementsFromSet";
 import removeThenGetSpecificNumberOfSetElements from "../../Source/Incubators/removeThenGetSpecificNumberOfSetElements";
+import removeIrrelevantForbiddenIDsAndSortInAscendingOrder
+  from "../../Source/Utils/removeIrrelevantForbiddenIDsAndSortInAscendingOrder";
 
 
-export default class ExperimentalPersistentSerialNanoIDsGenerator extends PersistentSerialNanoIDsGenerator {
-
-  public readonly NAME: string = "ExperimentalPersistentSerialNanoIDsGenerator";
+export default class TestablePersistentSerialNanoIDsGenerator
+    extends PersistentSerialNanoIDsGenerator
+    implements TestableSerialNanoIDsGenerator
+{
 
   /* [ Theory ] Has been made public only for testing purposes. */
   public readonly forbiddenIDs: Set<string> = new Set<string>();
@@ -18,16 +22,30 @@ export default class ExperimentalPersistentSerialNanoIDsGenerator extends Persis
   public constructor(
     {
       issuedButWillNotBeUsedIDs = new Set(),
+      forbiddenIDs,
       ...parentClassOptions
     }:
-        PersistentSerialNanoIDsGenerator.Options &
-        Readonly<{
-          issuedButWillNotBeUsedIDs?: Set<string>;
-        }> =
+        TestableSerialNanoIDsGenerator.Options =
             {}
   ) {
+
     super(parentClassOptions);
-    this.issuedButWillNotBeUsedIDs = issuedButWillNotBeUsedIDs;
+
+    this.issuedButWillNotBeUsedIDs = new Set(issuedButWillNotBeUsedIDs);
+
+    const {
+      relevantExternallyUsedIDs
+    }: Readonly<{
+      relevantExternallyUsedIDs: Array<string>;
+      notRelevantAnymoreExternallyIssuedIDs: Array<string>;
+    }> = removeIrrelevantForbiddenIDsAndSortInAscendingOrder({
+      newForbiddenIDs: Array.from(forbiddenIDs ?? []),
+      previouslyForbiddenIDs: new Set(),
+      reversedPositions: this.reversedPositions
+    });
+
+    this.forbiddenIDs = new Set(relevantExternallyUsedIDs);
+
   }
 
 
@@ -64,6 +82,26 @@ export default class ExperimentalPersistentSerialNanoIDsGenerator extends Persis
     });
 
     return Promise.resolve();
+
+  }
+
+  protected async whichIDsForbidden(targetIDs: ReadonlyArray<string>): Promise<Set<string>> {
+
+    if (targetIDs.length === 0) {
+      return new Set();
+    }
+
+
+    // TODO Replace with this.forbiddenIDs.intersection(new Set(targetIDs))
+    const forbiddenIDs: Set<string> = new Set();
+
+    for (const ID of targetIDs) {
+      if (this.forbiddenIDs.has(ID)) {
+        forbiddenIDs.add(ID);
+      }
+    }
+
+    return Promise.resolve(forbiddenIDs);
 
   }
 
@@ -117,8 +155,8 @@ export default class ExperimentalPersistentSerialNanoIDsGenerator extends Persis
   }
 
 
-  public getForbiddenIDs(): Set<string> {
-    return this.forbiddenIDs;
+  public async getForbiddenIDs(): Promise<Set<string>> {
+    return Promise.resolve(this.forbiddenIDs);
   }
 
 }

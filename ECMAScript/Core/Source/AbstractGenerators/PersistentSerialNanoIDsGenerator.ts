@@ -1,19 +1,16 @@
 import { FIXED_CHARACTERS_COUNT_IN_NANO_ID } from "fundamental-constants";
-import CharactersSequence from "./Internal/CharactersSequence";
+import CharactersSequence from "../Internal/CharactersSequence";
+import removeIrrelevantForbiddenIDsAndSortInAscendingOrder from
+    "../Utils/removeIrrelevantForbiddenIDsAndSortInAscendingOrder";
 import {
   createArrayOfNaturalNumbers,
   Logger,
   InvalidParameterValueError,
   isNotUndefined
 } from "@yamato-daiwa/es-extensions";
-import {
-  compareValuesOfArbitraryNumeralSystem,
-  type ComparingValuesOfArbitraryNumeralSystem
-} from "./Incubators/compareValuesOfArbitraryNumeralSystem";
-import type { SerialNanoID_Generator } from "./SerialNanoID_Generator";
 
 
-abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generator {
+abstract class PersistentSerialNanoIDsGenerator {
 
   /* ━━━ Fields ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
   /* ┅┅┅ Instance ┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅ */
@@ -35,8 +32,13 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
       initialPositions,
       initialSeries = 0,
       mustInclude0thSeriesToIDs = false
-    }: SerialNanoID_Generator.Options
-        = {}
+    }:
+        Readonly<{
+          initialPositions?: ReadonlyArray<string>;
+          initialSeries?: number;
+          mustInclude0thSeriesToIDs?: boolean;
+        }>
+            = {}
   ) {
 
     if (isNotUndefined(initialPositions)) {
@@ -86,6 +88,8 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
   /** @description No internal usages. Only for usage on demand. */
   protected abstract registerForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
+  protected abstract whichIDsForbidden(targetIDs: ReadonlyArray<string>): Promise<Set<string>>;
+
   public abstract isID_Forbidden(targetID: string): Promise<boolean>;
 
   public abstract deleteForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
@@ -110,6 +114,7 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
   public async generateOne(): Promise<string> {
 
     const firstIssuedButWillNotBeUsedID: string | undefined = (await this.removeThenGetIssuedButHasBecomeUnnecessaryIDs(1))[0];
+
 
     // TODO May become forbidden!
     if (isNotUndefined(firstIssuedButWillNotBeUsedID)) {
@@ -182,51 +187,17 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
 
   public async reportExternallyIssuedUsageOfIDs(targetIDs: ReadonlyArray<string>): Promise<void> {
 
-    const notActualAnymoreExternallyIssuedIDs: Array<string> = [];
-
-    const actualExternallyUsedIDs: Array<string> =
-
-        Array.from(new Set(targetIDs)).
-
-            filter(
-              (ID: string): boolean => {
-
-                const mustKeepID: boolean =
-                    compareValuesOfArbitraryNumeralSystem(
-                      Array.from(ID),
-                      this.reversedPositions,
-                      CharactersSequence
-                    ).
-                        isFirstValueGreaterOrEqualsToSecondOne;
-
-                if (!mustKeepID) {
-                  notActualAnymoreExternallyIssuedIDs.push(ID);
-                }
-
-                return mustKeepID
-
-              }
-
-            ).
-
-            toSorted(
-              (oneID: string, otherID: string): number => {
-
-                const {
-                  isFirstValueStrictlySmaller
-                }: ComparingValuesOfArbitraryNumeralSystem.Result =
-
-                    compareValuesOfArbitraryNumeralSystem(
-                      Array.from(oneID),
-                      Array.from(otherID),
-                      CharactersSequence
-                    );
-
-                return isFirstValueStrictlySmaller ? -1 : 1;
-
-              }
-            );
-
+    const {
+      relevantExternallyUsedIDs,
+      notRelevantAnymoreExternallyIssuedIDs
+    }: Readonly<{
+      relevantExternallyUsedIDs: Array<string>;
+      notRelevantAnymoreExternallyIssuedIDs: Array<string>;
+    }> = removeIrrelevantForbiddenIDsAndSortInAscendingOrder({
+      newForbiddenIDs: targetIDs,
+      previouslyForbiddenIDs: new Set(await this.whichIDsForbidden(targetIDs)),
+      reversedPositions: this.reversedPositions
+    });
 
     let updatedReservedPositions: Array<string> = this.reversedPositions;
     let updatedSeries: number = this.series;
@@ -240,11 +211,11 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
 
     let mustUpdateReversedPositions: boolean = false;
 
-    while (actualExternallyUsedIDs.includes(nextID)) {
+    while (relevantExternallyUsedIDs.includes(nextID)) {
 
       mustUpdateReversedPositions = true;
 
-      actualExternallyUsedIDs.shift();
+      relevantExternallyUsedIDs.shift();
 
       const incrementingResult: PersistentSerialNanoIDsGenerator.IncrementingResult =
           PersistentSerialNanoIDsGenerator.
@@ -276,8 +247,8 @@ abstract class PersistentSerialNanoIDsGenerator implements SerialNanoID_Generato
     await Promise.all([
       ...mustUpdateReversedPositions ? [] : [ this.synchronizeReversedPositions() ],
       ...mustUpdateSeries ? [] : [ this.synchronizeSeries() ],
-      ...actualExternallyUsedIDs.length > 0 ? [ this.registerForbiddenIDs(actualExternallyUsedIDs) ] : [],
-      ...notActualAnymoreExternallyIssuedIDs.length > 0 ? [ this.deleteForbiddenIDs(notActualAnymoreExternallyIssuedIDs) ] : []
+      ...relevantExternallyUsedIDs.length > 0 ? [ this.registerForbiddenIDs(relevantExternallyUsedIDs) ] : [],
+      ...notRelevantAnymoreExternallyIssuedIDs.length > 0 ? [ this.deleteForbiddenIDs(notRelevantAnymoreExternallyIssuedIDs) ] : []
     ]);
 
   }
