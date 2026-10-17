@@ -1,4 +1,4 @@
-import type { TestableSerialNanoIDsGenerator} from "../../Source";
+import type { TestableSerialNanoIDsGenerator } from "../../Source";
 import { InMemorySerialNanoID_Generator } from "../../Source";
 
 
@@ -33,6 +33,14 @@ export default class TestableInMemorySerialNanoIDsGenerator implements TestableS
 
   public async getForbiddenIDs(): Promise<Set<string>> {
     return Promise.resolve(this.synchronousCore.getForbiddenIDs());
+  }
+
+  public async getIssuedButUsageNotConfirmedIDs(): Promise<Set<string>> {
+    return Promise.resolve(this.synchronousCore.getIssuedButUsageNotConfirmedIDs());
+  }
+
+  public async getIssuedButWillNotBeUsedIDs(): Promise<Set<string>> {
+    return Promise.resolve(this.synchronousCore.getIssuedButWillNotBeUsedIDs());
   }
 
 }

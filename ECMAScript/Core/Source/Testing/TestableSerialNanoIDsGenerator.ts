@@ -6,6 +6,10 @@ export interface TestableSerialNanoIDsGenerator {
 
   getForbiddenIDs: () => Promise<Set<string>>;
 
+  getIssuedButUsageNotConfirmedIDs: () => Promise<Set<string>>;
+
+  getIssuedButWillNotBeUsedIDs: () => Promise<Set<string>>;
+
 }
 
 export namespace TestableSerialNanoIDsGenerator {

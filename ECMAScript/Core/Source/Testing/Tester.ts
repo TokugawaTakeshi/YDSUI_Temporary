@@ -1,15 +1,12 @@
 namespace Tester {
 
-  export type InstanceCreator<GeneratorType, Options> = (options: Options) => InstanceCreator.Data<GeneratorType>;
+  export type Implementation<GeneratorType, Options> =
+      Readonly<{
+        instanceCreator: InstanceCreator<GeneratorType, Options>;
+        nameForLogging: string;
+      }>;
 
-  export namespace InstanceCreator {
-
-    export type Data<GeneratorType> = Readonly<{
-      instance: GeneratorType;
-      nameForLogging: string;
-    }>;
-
-  }
+  export type InstanceCreator<GeneratorType, Options> = (options: Options) => Promise<GeneratorType>;
 
 }
 

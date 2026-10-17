@@ -7,11 +7,11 @@ import {
   removeOneElementFromSet,
   isNull,
   isNotUndefined,
+  addElementsToSet,
+  removeElementsFromSet,
   Logger,
-  InvalidParameterValueError,
-  addElementsToSet
+  InvalidParameterValueError
 } from "@yamato-daiwa/es-extensions";
-import removeElementsFromSet from "../Incubators/removeElementsFromSet";
 
 
 export default abstract class InMemorySerialNanoIDsGenerator {
@@ -45,7 +45,7 @@ export default abstract class InMemorySerialNanoIDsGenerator {
           initialPositions?: ReadonlyArray<string>;
           initialSeries?: number;
           mustInclude0thSeriesToIDs?: boolean;
-          issuedButUsageNotConfirmedIDs?: ReadonlySet<string>
+          issuedButUsageNotConfirmedIDs?: ReadonlySet<string>;
           issuedButWillNotBeUsedIDs?: ReadonlySet<string>;
           forbiddenIDs?: ReadonlySet<string>;
         }> =
@@ -102,23 +102,37 @@ export default abstract class InMemorySerialNanoIDsGenerator {
 
   /* ━━━ Public Methods ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
-  // ━━━ TODO ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   /* [ Approach ]
    * The FIRST ID must be issued without incrementing, but the checking is ID first or no may be the performance impact.
    * To avoid this, increment AFTER issuing of the ID. */
   public generateOne(): string {
 
-    // TODO May become forbidden!
-    const firstIssuedButWillNotBeUsedID: string | undefined =
-        removeOneElementFromSet({
-          targetSet: this.issuedButWillNotBeUsedIDs,
-          mutably: true,
-          mustThrowErrorIfSetIsEmpty: false
-        }).
-            removedElement;
+    let issuedButWillNotBeUsedID: string | undefined;
 
-    if (isNotUndefined(firstIssuedButWillNotBeUsedID)) {
-      return firstIssuedButWillNotBeUsedID;
+    do {
+
+      issuedButWillNotBeUsedID =
+          removeOneElementFromSet({
+            targetSet: this.issuedButWillNotBeUsedIDs,
+            mutably: true,
+            mustThrowErrorIfSetIsEmpty: false
+          }).
+              removedElement;
+
+      if (this.forbiddenIDs.has(issuedButWillNotBeUsedID ?? "")) {
+
+        /* eslint-disable-next-line @typescript-eslint/consistent-type-assertions --
+         * If `issuedButWillNotBeUsedID` is undefined, the above condition will be falsy. */
+        this.forbiddenIDs.delete(issuedButWillNotBeUsedID as string);
+
+      } else {
+        break;
+      }
+
+    } while (isNotUndefined(issuedButWillNotBeUsedID));
+
+    if (isNotUndefined(issuedButWillNotBeUsedID)) {
+      return issuedButWillNotBeUsedID;
     }
 
 
@@ -218,8 +232,16 @@ export default abstract class InMemorySerialNanoIDsGenerator {
 
   }
 
-  public async getForbiddenIDs(): Promise<Set<string>> {
-    return Promise.resolve(new Set(this.forbiddenIDs));
+  public getForbiddenIDs(): Set<string> {
+    return new Set(this.forbiddenIDs);
+  }
+
+  public getIssuedButUsageNotConfirmedIDs(): Set<string> {
+    return new Set(this.issuedButUsageNotConfirmedIDs);
+  }
+
+  public getIssuedButWillNotBeUsedIDs(): Set<string> {
+    return new Set(this.issuedButWillNotBeUsedIDs);
   }
 
 
@@ -268,13 +290,7 @@ export default abstract class InMemorySerialNanoIDsGenerator {
   }
 
   protected static generateReversedPositionsForFirstID(): Array<string> {
-    return [
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A"
-    ];
+    return new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("A");
   }
 
 }

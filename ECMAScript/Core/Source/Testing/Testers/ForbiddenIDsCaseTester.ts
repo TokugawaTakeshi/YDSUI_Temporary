@@ -1,21 +1,22 @@
 import type { TestableSerialNanoIDsGenerator } from "../TestableSerialNanoIDsGenerator";
-import { Logger } from "@yamato-daiwa/es-extensions";
 import type Tester from "../Tester";
+import { FIXED_CHARACTERS_COUNT_IN_NANO_ID } from "fundamental-constants";
+import { Logger } from "@yamato-daiwa/es-extensions";
 import Testing from "node:test";
-import Assert from "assert";
+import Assert from "node:assert";
 
 
 abstract class ForbiddenIDsCaseTester {
 
   public static test(
-    instancesCreators:
-        ReadonlyArray<Tester.InstanceCreator<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>>
+    implementations:
+        ReadonlyArray<Tester.Implementation<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>>
   ): void {
 
     Testing.
 
         describe(
-          "Forbidden IDs ...",
+          "Forbidden IDs...",
           async (): Promise<void> => {
 
             await Promise.all([
@@ -25,76 +26,33 @@ abstract class ForbiddenIDsCaseTester {
                 async (): Promise<void> => {
 
                   await Promise.all(
-                    instancesCreators.map(
+                    implementations.map(
                       async (
-                        createInstance:
-                            Tester.InstanceCreator<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>
+                        { instanceCreator: createInstance, nameForLogging: implementationNameForLogging }:
+                            Tester.Implementation<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>
                       ): Promise<void> => {
 
-                        const {
-                          instance: serialNanoID_Generator,
-                          nameForLogging: implementationNameForLogging
-                        }:
-                            Tester.InstanceCreator.Data<TestableSerialNanoIDsGenerator> =
-                                createInstance({
-                                  initialPositions: [
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3"
-                                  ],
-                                  forbiddenIDs: new Set([
-                                    [
-                                      "5", "5", "5", "5", "5",
-                                      "5", "5", "5", "5", "5",
-                                      "5", "5", "5", "5", "5",
-                                      "5", "5", "5", "5", "5",
-                                      "5"
-                                    ].join(""),
-                                    [
-                                      "4", "4", "4", "4", "4",
-                                      "4", "4", "4", "4", "4",
-                                      "4", "4", "4", "4", "4",
-                                      "4", "4", "4", "4", "4",
-                                      "4"
-                                    ].join(""),
-                                    [
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "4"
-                                    ].join(""),
-                                    [
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3"
-                                    ].join(""),
-                                    [
-                                      "2", "2", "2", "2", "2",
-                                      "2", "2", "2", "2", "2",
-                                      "2", "2", "2", "2", "2",
-                                      "2", "2", "2", "2", "2",
-                                      "2"
-                                    ].join(""),
-                                    [
-                                      "1", "1", "1", "1", "1",
-                                      "1", "1", "1", "1", "1",
-                                      "1", "1", "1", "1", "1",
-                                      "1", "1", "1", "1", "1",
-                                      "1"
-                                    ].join("")
-                                  ])
-                                });
+                        const serialNanoID_Generator: TestableSerialNanoIDsGenerator =
+                            await createInstance({
 
-                        await Testing.describe(
+                              initialPositions: new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("3"),
+
+                              /* [ Approach ] Keep the reversed order to check the arranging capabilities of IDs generators. */
+                              forbiddenIDs: new Set([
+                                new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join(""),
+                                new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join(""),
+                                `${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("3").join("") }4`,
+                                new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("3").join(""),
+                                new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("2").join(""),
+                                new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("1").join("")
+                              ])
+                            });
+
+                        /* [ Approach ]
+                         * Here must be the "test" function, not "suite"; otherwise the execution sequence will break. */
+                        await Testing.test(
                           implementationNameForLogging,
                           async (): Promise<void> => {
-
-                            console.log("CHECKPOINT 1");
 
                             await Testing.test(
                               "No RAM has been wasted for the storing of irrelevant IDs",
@@ -102,74 +60,32 @@ abstract class ForbiddenIDsCaseTester {
 
                                 const forbiddenIDs: ReadonlySet<string> = await serialNanoID_Generator.getForbiddenIDs();
 
-                                console.log("CHECKPOINT 2");
-                                console.log(await serialNanoID_Generator.getForbiddenIDs());
-
                                 Assert.deepStrictEqual(forbiddenIDs.size, 4);
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("3").join("")),
+                                  true
                                 );
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "4"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(`${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("3").join("") }4`),
+                                  true
                                 );
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join("")),
+                                  true
                                 );
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join("")),
+                                  true
                                 );
-
-                                console.log("CHECKPOINT 3");
 
                               }
                             );
 
 
-                            console.log("CHECKPOINT 4");
                             const nextID: string = await serialNanoID_Generator.generateOne();
 
                             await Promise.all([
@@ -178,20 +94,9 @@ abstract class ForbiddenIDsCaseTester {
                                 "Next ID is matching with expected one",
                                 (): void => {
 
-
                                   Assert.deepStrictEqual(
-
                                     nextID,
-
-                                    [
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "5"
-                                    ].
-                                        join("")
-
+                                    `${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("3").join("") }5`
                                   );
 
                                 }
@@ -203,70 +108,22 @@ abstract class ForbiddenIDsCaseTester {
 
                                   const forbiddenIDs: ReadonlySet<string> = await serialNanoID_Generator.getForbiddenIDs();
 
-                                  Assert.deepStrictEqual(forbiddenIDs.size, 4);
+                                  Assert.deepStrictEqual(forbiddenIDs.size, 2);
 
                                   Assert.deepStrictEqual(
-                                    forbiddenIDs.
-                                        has(
-                                          [
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "3"
-                                          ].join("")
-                                        ),
-                                        true
+                                    forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join("")),
+                                    true
                                   );
 
                                   Assert.deepStrictEqual(
-                                    forbiddenIDs.
-                                        has(
-                                          [
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "3", "3", "3", "3", "3",
-                                            "4"
-                                          ].join("")
-                                        ),
-                                        true
-                                  );
-
-                                  Assert.deepStrictEqual(
-                                    forbiddenIDs.
-                                        has(
-                                          [
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4"
-                                          ].join("")
-                                        ),
-                                        true
-                                  );
-
-                                  Assert.deepStrictEqual(
-                                    forbiddenIDs.
-                                        has(
-                                          [
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5"
-                                          ].join("")
-                                        ),
-                                        true
+                                    forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join("")),
+                                    true
                                   );
 
                                 }
                               )
 
                             ]);
-
-
 
                           }
                         );
@@ -284,149 +141,54 @@ abstract class ForbiddenIDsCaseTester {
                 async (): Promise<void> => {
 
                   await Promise.all(
-                    instancesCreators.map(
+                    implementations.map(
                       async (
-                        createInstance:
-                            Tester.InstanceCreator<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>
+                        { instanceCreator: createInstance, nameForLogging: implementationNameForLogging }:
+                            Tester.Implementation<TestableSerialNanoIDsGenerator, ForbiddenIDsCaseTester.InstanceCreator.Options>
                       ): Promise<void> => {
 
-                        const {
-                          instance: serialNanoID_Generator,
-                          nameForLogging: implementationNameForLogging
-                        }:
-                            Tester.InstanceCreator.Data<TestableSerialNanoIDsGenerator> =
-                                createInstance({
-                                  initialPositions: [
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3", "3", "3", "3", "3",
-                                    "3"
-                                  ]
-                                });
+                        const serialNanoID_Generator: TestableSerialNanoIDsGenerator =
+                            await createInstance({ initialPositions: new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("3") });
 
-                        /* [ Approach ] Keep reverse order to test can the ID generator sort the IDs */
+                        /* [ Approach ] Keep the reversed order to check the arranging capabilities of IDs generators. */
                         await serialNanoID_Generator.reportExternallyIssuedUsageOfIDs([
-                          [
-                            "5", "5", "5", "5", "5",
-                            "5", "5", "5", "5", "5",
-                            "5", "5", "5", "5", "5",
-                            "5", "5", "5", "5", "5",
-                            "5"
-                          ].join(""),
-                          [
-                            "4", "4", "4", "4", "4",
-                            "4", "4", "4", "4", "4",
-                            "4", "4", "4", "4", "4",
-                            "4", "4", "4", "4", "4",
-                            "4"
-                          ].join(""),
-                          [
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "4"
-                          ].join(""),
-                          [
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "3", "3", "3", "3", "3",
-                            "3"
-                          ].join(""),
-                          [
-                            "2", "2", "2", "2", "2",
-                            "2", "2", "2", "2", "2",
-                            "2", "2", "2", "2", "2",
-                            "2", "2", "2", "2", "2",
-                            "2"
-                          ].join(""),
-                          [
-                            "1", "1", "1", "1", "1",
-                            "1", "1", "1", "1", "1",
-                            "1", "1", "1", "1", "1",
-                            "1", "1", "1", "1", "1",
-                            "1"
-                          ].join("")
+                          new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join(""),
+                          new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join(""),
+                          `${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("3").join("") }4`,
+                          new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("3").join(""),
+                          new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("2").join(""),
+                          new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("1").join("")
                         ]);
 
-                        await Testing.describe(
+                        /* [ Approach ]
+                         * Here must be the "test" function, not "suite"; otherwise the execution sequence will break. */
+                        await Testing.test(
                           implementationNameForLogging,
                           async (): Promise<void> => {
 
                             await Testing.test(
-                              "Not relevant IDs has been removed after issuing of new ID",
+                              "Only relevant forbidden IDs has been stored",
                               async (): Promise<void> => {
 
                                 const forbiddenIDs: ReadonlySet<string> = await serialNanoID_Generator.getForbiddenIDs();
 
-                                console.log("CHECKPOINT 2");
-                                console.log(await serialNanoID_Generator.getForbiddenIDs());
-
-                                Assert.deepStrictEqual(forbiddenIDs.size, 4);
+                                /* [ Theory ]
+                                 * Unlike initially set forbidden IDs, `reportExternallyIssuedUsageOfIDs()` also
+                                 *   changes the positions if required. */
+                                Assert.deepStrictEqual(forbiddenIDs.size, 2);
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join("")),
+                                  true
                                 );
 
                                 Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "3", "3", "3", "3", "3",
-                                          "4"
-                                        ].join("")
-                                      ),
-                                      true
+                                  forbiddenIDs.has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join("")),
+                                  true
                                 );
-
-                                Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4", "4", "4", "4", "4",
-                                          "4"
-                                        ].join("")
-                                      ),
-                                      true
-                                );
-
-                                Assert.deepStrictEqual(
-                                  forbiddenIDs.
-                                      has(
-                                        [
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5", "5", "5", "5", "5",
-                                          "5"
-                                        ].join("")
-                                      ),
-                                      true
-                                );
-
-                                console.log("CHECKPOINT 3");
 
                               }
                             );
-
 
                             const nextID: string = await serialNanoID_Generator.generateOne();
 
@@ -434,23 +196,11 @@ abstract class ForbiddenIDsCaseTester {
 
                               Testing.test(
                                 "Next ID is matching with expected one",
-                                async (): Promise<void> => {
-
-
+                                (): void => {
 
                                   Assert.deepStrictEqual(
-
                                     nextID,
-
-                                    [
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "3", "3", "3", "3", "3",
-                                      "5"
-                                    ].
-                                        join("")
-
+                                    `${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("3").join("") }5`
                                   );
 
                                 }
@@ -466,29 +216,13 @@ abstract class ForbiddenIDsCaseTester {
 
                                   Assert.deepStrictEqual(
                                     forbiddenIDs.
-                                        has(
-                                          [
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4", "4", "4", "4", "4",
-                                            "4"
-                                          ].join("")
-                                        ),
+                                        has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("4").join("")),
                                         true
                                   );
 
                                   Assert.deepStrictEqual(
                                     forbiddenIDs.
-                                        has(
-                                          [
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5", "5", "5", "5", "5",
-                                            "5"
-                                          ].join("")
-                                        ),
+                                        has(new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("5").join("")),
                                         true
                                   );
 
@@ -508,7 +242,7 @@ abstract class ForbiddenIDsCaseTester {
                 }
               )
 
-            ])
+            ]);
 
           }
         ).
@@ -526,10 +260,8 @@ namespace ForbiddenIDsCaseTester {
 
     export type Options = Readonly<{
       initialPositions: ReadonlyArray<string>;
-      forbiddenIDs?: ReadonlySet<string>
+      forbiddenIDs?: ReadonlySet<string>;
     }>;
-
-    export type Data = Tester.InstanceCreator.Data<TestableSerialNanoIDsGenerator>;
 
   }
 

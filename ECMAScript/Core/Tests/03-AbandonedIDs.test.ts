@@ -1,19 +1,24 @@
 import { AbandonedIDsCaseTester } from "../Source";
+
 import TestablePersistentSerialNanoIDsGenerator from
-      "./TestableImplementations/TestablePersistentSerialNanoIDsGenerator";
+    "./TestableImplementations/TestablePersistentSerialNanoIDsGenerator";
 import TestableInMemorySerialNanoIDsGenerator from
-      "./TestableImplementations/TestableInMemorySerialNanoIDsGenerator";
+    "./TestableImplementations/TestableInMemorySerialNanoIDsGenerator";
 
 
 AbandonedIDsCaseTester.test([
-  (options: AbandonedIDsCaseTester.InstanceCreator.Options): AbandonedIDsCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestablePersistentSerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalPersistentSerialNanoIDsGenerator"
-      }),
-  (options: AbandonedIDsCaseTester.InstanceCreator.Options): AbandonedIDsCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestableInMemorySerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalInMemorySerialNanoID_Generator"
-      })
+  {
+    nameForLogging: TestablePersistentSerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: AbandonedIDsCaseTester.InstanceCreator.Options):
+            Promise<TestablePersistentSerialNanoIDsGenerator> =>
+                Promise.resolve(new TestablePersistentSerialNanoIDsGenerator({ ...options }))
+  },
+  {
+    nameForLogging: TestableInMemorySerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: AbandonedIDsCaseTester.InstanceCreator.Options):
+            Promise<TestableInMemorySerialNanoIDsGenerator> =>
+                Promise.resolve(new TestableInMemorySerialNanoIDsGenerator({ ...options }))
+  }
 ]);

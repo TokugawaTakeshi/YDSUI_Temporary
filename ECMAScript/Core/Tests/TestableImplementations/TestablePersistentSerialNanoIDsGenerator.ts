@@ -1,10 +1,12 @@
-import type { TestableSerialNanoIDsGenerator} from "../../Source";
+import type { TestableSerialNanoIDsGenerator } from "../../Source";
 import { PersistentSerialNanoIDsGenerator } from "../../Source";
-import { addElementsToSet } from "@yamato-daiwa/es-extensions";
-import removeElementsFromSet from "../../Source/Incubators/removeElementsFromSet";
-import removeThenGetSpecificNumberOfSetElements from "../../Source/Incubators/removeThenGetSpecificNumberOfSetElements";
-import removeIrrelevantForbiddenIDsAndSortInAscendingOrder
-  from "../../Source/Utils/removeIrrelevantForbiddenIDsAndSortInAscendingOrder";
+import {
+  addElementsToSet,
+  removeElementsFromSet,
+  removeThenGetSpecificNumberOfSetElements
+} from "@yamato-daiwa/es-extensions";
+import removeIrrelevantForbiddenIDsAndSortInAscendingOrder from
+    "../../Source/Utils/removeIrrelevantForbiddenIDsAndSortInAscendingOrder";
 
 
 export default class TestablePersistentSerialNanoIDsGenerator
@@ -156,7 +158,15 @@ export default class TestablePersistentSerialNanoIDsGenerator
 
 
   public async getForbiddenIDs(): Promise<Set<string>> {
-    return Promise.resolve(this.forbiddenIDs);
+    return Promise.resolve(new Set(this.forbiddenIDs));
+  }
+
+  public async getIssuedButUsageNotConfirmedIDs(): Promise<Set<string>> {
+    return Promise.resolve(new Set(this.issuedButUsageNotConfirmedIDs));
+  }
+
+  public async getIssuedButWillNotBeUsedIDs(): Promise<Set<string>> {
+    return Promise.resolve(new Set(this.issuedButWillNotBeUsedIDs));
   }
 
 }

@@ -1,4 +1,5 @@
 import { NoInitialConditionsCaseTester } from "../Source";
+
 import TestablePersistentSerialNanoIDsGenerator from
       "./TestableImplementations/TestablePersistentSerialNanoIDsGenerator";
 import TestableInMemorySerialNanoIDsGenerator from
@@ -6,14 +7,18 @@ import TestableInMemorySerialNanoIDsGenerator from
 
 
 NoInitialConditionsCaseTester.test([
-  (options: NoInitialConditionsCaseTester.InstanceCreator.Options): NoInitialConditionsCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestablePersistentSerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalPersistentSerialNanoIDsGenerator"
-      }),
-  (options: NoInitialConditionsCaseTester.InstanceCreator.Options): NoInitialConditionsCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestableInMemorySerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalInMemorySerialNanoID_Generator"
-      })
+  {
+    nameForLogging: TestablePersistentSerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: NoInitialConditionsCaseTester.InstanceCreator.Options):
+            Promise<TestablePersistentSerialNanoIDsGenerator> =>
+                Promise.resolve(new TestablePersistentSerialNanoIDsGenerator({ ...options }))
+  },
+  {
+    nameForLogging: TestableInMemorySerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: NoInitialConditionsCaseTester.InstanceCreator.Options):
+            Promise<TestableInMemorySerialNanoIDsGenerator> =>
+              Promise.resolve(new TestableInMemorySerialNanoIDsGenerator({ ...options }))
+  }
 ]);

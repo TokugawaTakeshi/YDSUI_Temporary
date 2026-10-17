@@ -1,9 +1,3 @@
-export interface SerialNanoID_Generator {
-
-  reportExternallyIssuedUsageOfIDs: (targetIDs: ReadonlyArray<string>) => void;
-
-}
-
 export namespace SerialNanoID_Generator {
 
   export type Options = Readonly<{

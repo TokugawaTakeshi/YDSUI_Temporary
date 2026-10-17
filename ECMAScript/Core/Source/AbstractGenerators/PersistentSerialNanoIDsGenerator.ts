@@ -75,24 +75,23 @@ abstract class PersistentSerialNanoIDsGenerator {
 
 
   /* ┅┅┅ Abstract Methods ┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅┅ */
-  /* ╍╍╍ Public ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍ */
 
   public abstract reportSuccessfulUsageOfIssuedIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
   public abstract reportHasBecomeUnnecessaryIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
 
-  /* ─── Forbidden IDs ────────────────────────────────────────────────────────────────────────────────────────────── */
+  /* ╍╍╍ Forbidden IDs ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍ */
   /* [ Approach ] The number of these IDs can be arbitrary large, so should NOT store them in RAM. */
+
+  public abstract isID_Forbidden(targetID: string): Promise<boolean>;
+
+  public abstract deleteForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
   /** @description No internal usages. Only for usage on demand. */
   protected abstract registerForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
   protected abstract whichIDsForbidden(targetIDs: ReadonlyArray<string>): Promise<Set<string>>;
-
-  public abstract isID_Forbidden(targetID: string): Promise<boolean>;
-
-  public abstract deleteForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void>;
 
 
   /* ╍╍╍ Protected ╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍╍ */
@@ -115,8 +114,6 @@ abstract class PersistentSerialNanoIDsGenerator {
 
     const firstIssuedButWillNotBeUsedID: string | undefined = (await this.removeThenGetIssuedButHasBecomeUnnecessaryIDs(1))[0];
 
-
-    // TODO May become forbidden!
     if (isNotUndefined(firstIssuedButWillNotBeUsedID)) {
 
       await this.registerIssuedButNotUsedYetIDs([ firstIssuedButWillNotBeUsedID ]);
@@ -136,7 +133,6 @@ abstract class PersistentSerialNanoIDsGenerator {
 
   public async generateMultipleOnes(count: number): Promise<Array<string>> {
 
-    // TODO May become forbidden!
     const issuedButWillNotBeUsedIDs: Array<string> = await this.removeThenGetIssuedButHasBecomeUnnecessaryIDs(count);
 
     const numberOfIDsMustBeGenerated: number = count - issuedButWillNotBeUsedIDs.length;
@@ -248,7 +244,8 @@ abstract class PersistentSerialNanoIDsGenerator {
       ...mustUpdateReversedPositions ? [] : [ this.synchronizeReversedPositions() ],
       ...mustUpdateSeries ? [] : [ this.synchronizeSeries() ],
       ...relevantExternallyUsedIDs.length > 0 ? [ this.registerForbiddenIDs(relevantExternallyUsedIDs) ] : [],
-      ...notRelevantAnymoreExternallyIssuedIDs.length > 0 ? [ this.deleteForbiddenIDs(notRelevantAnymoreExternallyIssuedIDs) ] : []
+      ...notRelevantAnymoreExternallyIssuedIDs.length > 0 ?
+          [ this.deleteForbiddenIDs(notRelevantAnymoreExternallyIssuedIDs) ] : []
     ]);
 
   }
@@ -307,7 +304,7 @@ abstract class PersistentSerialNanoIDsGenerator {
       await Promise.all([
         this.synchronizeReversedPositions(),
         ...this.series === updatedSeries ? [] : [ this.synchronizeSeries() ],
-        ...passedForbiddenIDs.length > 0 ? [] : [ this.deleteForbiddenIDs(passedForbiddenIDs) ]
+        ...passedForbiddenIDs.length > 0 ? [ this.deleteForbiddenIDs(passedForbiddenIDs) ] : []
       ]);
 
     } else {
@@ -371,15 +368,7 @@ abstract class PersistentSerialNanoIDsGenerator {
   }
 
   protected static generateReversedPositionsForFirstID(): Array<string> {
-    /* eslint-disable @stylistic/array-element-newline -- Allow 5 element per row for readability. */
-    return [
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A", "A", "A", "A", "A",
-      "A"
-    ];
-    /* eslint-enable @stylistic/array-element-newline */
+    return new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("A");
   }
 
 }

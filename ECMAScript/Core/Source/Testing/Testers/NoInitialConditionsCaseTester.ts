@@ -1,16 +1,17 @@
 import type { TestableSerialNanoIDsGenerator } from "../TestableSerialNanoIDsGenerator";
-import { Logger } from "@yamato-daiwa/es-extensions";
 import type Tester from "../Tester";
+import { FIXED_CHARACTERS_COUNT_IN_NANO_ID } from "fundamental-constants";
+import { Logger } from "@yamato-daiwa/es-extensions";
 import Testing from "node:test";
-import Assert from "assert";
+import Assert from "node:assert";
 
 
 abstract class NoInitialConditionsCaseTester {
 
   public static test(
-    instancesCreators:
+    implementations:
         ReadonlyArray<
-          Tester.InstanceCreator<TestableSerialNanoIDsGenerator, NoInitialConditionsCaseTester.InstanceCreator.Options>
+          Tester.Implementation<TestableSerialNanoIDsGenerator, NoInitialConditionsCaseTester.InstanceCreator.Options>
         >
   ): void {
 
@@ -21,24 +22,19 @@ abstract class NoInitialConditionsCaseTester {
           async (): Promise<void> => {
 
             await Promise.all(
-              instancesCreators.map(
+              implementations.map(
                 async (
-                  createInstance:
-                      Tester.InstanceCreator<
+                  { instanceCreator: createInstance, nameForLogging: implementationNameForLogging }:
+                      Tester.Implementation<
                         TestableSerialNanoIDsGenerator, NoInitialConditionsCaseTester.InstanceCreator.Options
                       >
                 ): Promise<void> => {
 
-                  const {
-                    instance: serialNanoID_Generator,
-                    nameForLogging: implementationNameForLogging
-                  }:
-                      Tester.InstanceCreator.Data<TestableSerialNanoIDsGenerator> =
-                          createInstance({});
-
                   await Testing.describe(
                     implementationNameForLogging,
                     async (): Promise<void> => {
+
+                      const serialNanoID_Generator: TestableSerialNanoIDsGenerator = await createInstance({});
 
                       const firstID: string = await serialNanoID_Generator.generateOne();
                       const secondID: string = await serialNanoID_Generator.generateOne();
@@ -48,44 +44,20 @@ abstract class NoInitialConditionsCaseTester {
                         Testing.test(
                           "1st ID is correct",
                           (): void => {
-
                             Assert.deepStrictEqual(
-
                               firstID,
-
-                              [
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "A"
-                              ].
-                                  join("")
-
+                              new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("A").join("")
                             );
-
                           }
                         ),
 
                         Testing.test(
                           "2st ID is correct",
                           (): void => {
-
                             Assert.deepStrictEqual(
-
                               secondID,
-
-                              [
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "A", "A", "A", "A", "A",
-                                "B"
-                              ].
-                                  join("")
-
+                              `${ new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID - 1).fill("A").join("") }B`
                             );
-
                           }
                         )
 
@@ -112,9 +84,9 @@ namespace NoInitialConditionsCaseTester {
 
   export namespace InstanceCreator {
 
+    /* eslint-disable-next-line @typescript-eslint/no-empty-object-type, @typescript-eslint/no-generated-empty-object-type --
+     * Want and empty object in this case because no options are needed. */
     export type Options = Readonly<{}>;
-
-    export type Data = Tester.InstanceCreator.Data<TestableSerialNanoIDsGenerator>;
 
   }
 

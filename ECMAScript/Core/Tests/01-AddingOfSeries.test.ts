@@ -1,20 +1,24 @@
 import AddingOfSeriesCaseTester from "../Source/Testing/Testers/AddingOfSeriesCaseTester";
 
 import TestableInMemorySerialNanoIDsGenerator from
-      "./TestableImplementations/TestableInMemorySerialNanoIDsGenerator";
+    "./TestableImplementations/TestableInMemorySerialNanoIDsGenerator";
 import TestablePersistentSerialNanoIDsGenerator from
-      "./TestableImplementations/TestablePersistentSerialNanoIDsGenerator";
+    "./TestableImplementations/TestablePersistentSerialNanoIDsGenerator";
 
 
 AddingOfSeriesCaseTester.test([
-  (options: AddingOfSeriesCaseTester.InstanceCreator.Options): AddingOfSeriesCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestablePersistentSerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalPersistentSerialNanoIDsGenerator"
-      }),
-  (options: AddingOfSeriesCaseTester.InstanceCreator.Options): AddingOfSeriesCaseTester.InstanceCreator.Data =>
-      ({
-        instance: new TestableInMemorySerialNanoIDsGenerator({ ...options }),
-        nameForLogging: "ExperimentalInMemorySerialNanoID_Generator"
-      })
+  {
+    nameForLogging: TestablePersistentSerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: AddingOfSeriesCaseTester.InstanceCreator.Options):
+            Promise<TestablePersistentSerialNanoIDsGenerator> =>
+                Promise.resolve(new TestablePersistentSerialNanoIDsGenerator({ ...options }))
+  },
+  {
+    nameForLogging: TestableInMemorySerialNanoIDsGenerator.name,
+    instanceCreator:
+        async (options: AddingOfSeriesCaseTester.InstanceCreator.Options):
+            Promise<TestableInMemorySerialNanoIDsGenerator> =>
+              Promise.resolve(new TestableInMemorySerialNanoIDsGenerator({ ...options }))
+  }
 ]);

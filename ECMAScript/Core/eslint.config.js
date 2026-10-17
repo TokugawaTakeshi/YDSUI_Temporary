@@ -31,8 +31,8 @@ module.exports = [
       /* [ Justification ] Usage of fixed hardcoded data is allowed to tests. */
       "@typescript-eslint/no-magic-numbers": "off",
 
-      /* [ Justification ] Allow writing 5 array elements per row to make the number of elements quick to identify. */
-      "@stylistic/array-element-newline": "off"
+      /* [ Justification ] Allow the expressions like `new Array(FIXED_CHARACTERS_COUNT_IN_NANO_ID).fill("-").join("")`. */
+      "@stylistic/newline-per-chained-call": [ "warn", { ignoreChainWithDepth: 3 } ]
 
     }
   }
