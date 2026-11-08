@@ -22,7 +22,7 @@ export abstract class IoredisSerialNanoIDsGenerator extends PersistentSerialNano
 
     this.ioredisInstance = ioredisInstance;
     this.redisKeys = redisKeys;
-    
+
   }
 
 
@@ -49,6 +49,10 @@ export abstract class IoredisSerialNanoIDsGenerator extends PersistentSerialNano
 
   public async deleteForbiddenIDs(targetIDs: ReadonlyArray<string>): Promise<void> {
     await this.ioredisInstance.srem(this.redisKeys.forbiddenIDs, ...targetIDs);
+  }
+
+  public async whichIDsForbidden(targetIDs: ReadonlyArray<string>): Promise<Set<string>> {
+
   }
 
 

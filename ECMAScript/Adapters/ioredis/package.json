@@ -1,8 +1,12 @@
 {
   "name": "@yamato-daiwa/serial-unique-identifiers-ioredis",
   "version": "0.0.0",
-  "description": "",
-  "keywords": [],
+  "description": "Generates IDs respecting possible collisions. The ioredis adapter for the main package.",
+  "keywords": [
+    "id",
+    "nanoid",
+    "redis"
+  ],
   "engines": {
     "node": ">=22.0.0"
   },
@@ -18,18 +22,23 @@
   },
   "devDependencies": {
     "@types/node": "22.19.17",
-    "@yamato-daiwa/style_guides": "0.15.0",
+    "@yamato-daiwa/style_guides": "0.16.1",
     "@yamato-daiwa/serial-unique-identifiers": "../../Core",
     "ioredis": "6.0.0",
-    "rimraf": "6.1.3",
+    "rimraf": "6.1.4",
     "typescript": "6.0.3"
   },
   "scripts": {
     "Check Types": "tsc -p tsconfig-build.json --noEmit",
     "Lint": "eslint",
+    "Run Tests": "node --require tsx/cjs --test \"Tests/**/*.test.ts\" --coverage",
     "Rebuild Distributable Without Preliminary Cleaning": "tsc -p tsconfig.build.json",
-    "Rebuild Distributable": "rimraf Distributable && tsc -p tsconfig-cjs.json && tsc -p tsconfig-esm.json",
+    "Rebuild Distributable": "rimraf Distributable && tsc -p tsconfig.build.json",
     "Rebuild Distributable and Realize Alpha": "npm run \"Rebuild Distributable\" && npm publish --tag alpha",
-    "Rebuild Distributable and Realize RC": "npm run \"Rebuild Distributable\" && npm publish --tag rc"
+    "Rebuild Distributable and Realize RC": "npm run \"Rebuild Distributable\" && npm publish --tag rc",
+    "Print Project Structure": "wsl tree -I \".git|.idea|node_modules|Distributable\" || tree -I \".git|.idea|node_modules|Distributable\""
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

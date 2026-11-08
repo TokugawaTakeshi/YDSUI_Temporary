@@ -1,0 +1,27 @@
+# 【 手動編集禁止！！！ 】
+# 当ファイルは繰り返しで自動的に生成される為、手動編集の結果がいつでも取り消される。
+# 代わりに「01-Source/Automation/ConfigurationFilesTemplates/docker-compose.ProductionLike.hbs」を編集。
+
+
+services:
+
+  KeyValueDatabase:
+
+    image: redis:7.4.2-alpine
+    container_name: YDSUI-Redis-Testing
+    restart: on-failure
+
+    ports:
+      - target: 6379
+        published: 6379
+        host_ip: 127.0.0.1
+
+    volumes:
+      - KeyValueDatabaseData:/data
+
+
+volumes:
+
+  KeyValueDatabaseData:
+    name: YDSUI-Redis-Testing
+    driver: local

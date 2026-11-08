@@ -33,11 +33,7 @@ abstract class PersistentSerialNanoIDsGenerator {
       initialSeries = 0,
       mustInclude0thSeriesToIDs = false
     }:
-        Readonly<{
-          initialPositions?: ReadonlyArray<string>;
-          initialSeries?: number;
-          mustInclude0thSeriesToIDs?: boolean;
-        }>
+        PersistentSerialNanoIDsGenerator.Options
             = {}
   ) {
 
@@ -375,6 +371,13 @@ abstract class PersistentSerialNanoIDsGenerator {
 
 
 namespace PersistentSerialNanoIDsGenerator {
+
+  export type Options =
+      Readonly<{
+        initialPositions?: ReadonlyArray<string>;
+        initialSeries?: number;
+        mustInclude0thSeriesToIDs?: boolean;
+      }>;
 
   export type IncrementingResult = Readonly<{
     updatedReversedPositions: Array<string>;
